@@ -32,12 +32,23 @@ TEST_SUITE("telemetry") {
             static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
             REQUIRE(0==counter.value());
-            SUBCASE("Increment increments it to 1") {
+            SUBCASE("Add increments it to 1") {
                 counter.add();
                 REQUIRE(1==counter.value());
                 SUBCASE("Serialized correctly") {
                     REQUIRE(ss.str()=="test 0\ntest 1\n");
                 }
+            }
+        }
+        SUBCASE("Can create int16_t monotonic counter with init value 10, step 3 and is initialized with 10") {
+            auto counter = telemetry.create_atomic_monotonic_counter<int16_t,3>({"test"},10);
+            static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
+            static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
+            static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
+            REQUIRE(10==counter.value());
+            SUBCASE("Add increments it to 13") {
+                counter.add();
+                REQUIRE(13==counter.value());
             }
         }
 
