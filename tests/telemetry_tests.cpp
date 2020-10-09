@@ -26,6 +26,17 @@ TEST_SUITE("telemetry") {
     TEST_CASE("Can create telemetry") {
         std::stringstream ss;
         simple_telemetry::telemetry<metadata, exporter> telemetry{exporter{&ss}};
+        SUBCASE("Can create int16_t value recorder and is initialized with 0") {
+            auto counter = telemetry.create_atomic_value_recorder_counter<int16_t>({"test"});
+            REQUIRE(0==counter.value());
+            SUBCASE("Set value to 5736, value is set to 5736") {
+                counter.set(5736);
+                REQUIRE(5736==counter.value());
+                SUBCASE("Serialized to test 5736\\n") {
+                    REQUIRE(ss.str()=="test 5736\n");
+                }
+            }
+        }
         SUBCASE("Can create int16_t monotonic counter and is initialized with 0") {
             auto counter = telemetry.create_atomic_monotonic_counter<int16_t>({"test"});
             static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_monotonic_counter should not be copy assignable");

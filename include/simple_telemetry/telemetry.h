@@ -16,7 +16,34 @@ namespace simple_telemetry {
         value_type value_;
     };
 
-    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step=1>
+    template <typename Tvalue, typename Tmetadata, typename Texporter, bool emit_initial>
+    class atomic_value_recorder {
+    public:
+        using value_type = Tvalue;
+        using metadata_type = Tmetadata;
+        using exporter_type = Texporter;
+    private:
+        data_block<std::atomic<value_type>,metadata_type,exporter_type> data_;
+    public:
+        template <typename ...Args>
+        explicit atomic_value_recorder(Args ...args) : data_{std::forward<Args>(args)...} {
+            if (emit_initial) {
+                value_type value = data_.value_.load();
+                data_.exporter_->on_data_changed(value, data_.metadata_);
+            }
+        }
+
+        void set(value_type amount, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+            data_.value_.store(amount,mem_order);
+            data_.exporter_->on_data_changed(amount, data_.metadata_);
+        }
+
+        value_type value(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+            return data_.value_.load(mem_order);
+        }
+    };
+
+    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step, bool emit_initial>
     class atomic_bidirectional_counter {
     public:
         using value_type = Tvalue;
@@ -27,8 +54,10 @@ namespace simple_telemetry {
     public:
         template <typename ...Args>
         explicit atomic_bidirectional_counter(Args ...args) : data_{std::forward<Args>(args)...} {
-            value_type value = data_.value_.load();
-            data_.exporter_->on_data_changed(value, data_.metadata_);
+            if (emit_initial) {
+                value_type value = data_.value_.load();
+                data_.exporter_->on_data_changed(value, data_.metadata_);
+            }
         }
 
         void add(value_type amount=step, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
@@ -46,14 +75,14 @@ namespace simple_telemetry {
         }
     };
 
-    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step=1>
+    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step, bool emit_initial>
     class atomic_monotonic_counter {
     public:
         using value_type = Tvalue;
         using metadata_type = Tmetadata;
         using exporter_type = Texporter;
     private:
-        atomic_bidirectional_counter<value_type,metadata_type,exporter_type,step> counter_;
+        atomic_bidirectional_counter<value_type,metadata_type,exporter_type,step,emit_initial> counter_;
     public:
         template <typename ...Args>
         explicit atomic_monotonic_counter(Args ...args) : counter_{std::forward<Args>(args)...} {}
@@ -79,14 +108,19 @@ namespace simple_telemetry {
         template <typename ...Args>
         explicit telemetry(Args ...args) : impl_{std::make_shared<exporter_type>(std::forward<Args>(args)...)} {}
 
-        template<typename Tvalue,Tvalue step=1>
+        template<typename Tvalue, Tvalue step=1, bool emit_initial=true>
         auto create_atomic_bidirectional_counter(Tmetadata metadata = {}, Tvalue value = 0) {
-            return atomic_bidirectional_counter<Tvalue,Tmetadata,Texporter,step>{impl_, std::move(metadata), value};
+            return atomic_bidirectional_counter<Tvalue,Tmetadata,Texporter,step,emit_initial>{impl_, std::move(metadata), value};
         }
 
-        template<typename Tvalue,Tvalue step=1>
+        template<typename Tvalue, Tvalue step=1, bool emit_initial=true>
         auto create_atomic_monotonic_counter(Tmetadata metadata = {}, Tvalue value = 0) {
-            return atomic_monotonic_counter<Tvalue,Tmetadata,Texporter,step>{impl_, std::move(metadata), value};
+            return atomic_monotonic_counter<Tvalue,Tmetadata,Texporter,step,emit_initial>{impl_, std::move(metadata), value};
+        }
+
+        template<typename Tvalue, bool emit_initial=false>
+        auto create_atomic_value_recorder_counter(Tmetadata metadata = {}, Tvalue value = 0) {
+            return atomic_value_recorder<Tvalue,Tmetadata,Texporter,emit_initial>{impl_, std::move(metadata), value};
         }
 
     };
