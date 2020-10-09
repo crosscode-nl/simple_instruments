@@ -32,10 +32,6 @@ namespace simple_telemetry {
         Tvalue value(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             return data_.value_.load(mem_order);
         }
-
-        const Tmetadata &metadata() {
-            return data_.metadata_;
-        }
     };
 
     template <typename Tmetadata, typename Texporter>
