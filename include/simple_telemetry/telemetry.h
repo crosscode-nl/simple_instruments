@@ -16,7 +16,7 @@ namespace simple_telemetry {
         value_type value_;
     };
 
-    template <typename Tvalue, typename Tmetadata, typename Texporter>
+    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step=1>
     class atomic_bidirectional_counter {
     public:
         using value_type = Tvalue;
@@ -31,12 +31,12 @@ namespace simple_telemetry {
             data_.exporter_->on_data_changed(value, data_.metadata_);
         }
 
-        void add(value_type amount= 1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+        void add(value_type amount=step, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             value_type new_value = value_type{data_.value_.fetch_add(amount, mem_order)} + amount;
             data_.exporter_->on_data_changed(new_value, data_.metadata_);
         }
 
-        void sub(value_type amount= 1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+        void sub(value_type amount=step, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             value_type new_value = value_type{data_.value_.fetch_sub(amount, mem_order)} - amount;
             data_.exporter_->on_data_changed(new_value, data_.metadata_);
         }
@@ -46,20 +46,20 @@ namespace simple_telemetry {
         }
     };
 
-    template <typename Tvalue, typename Tmetadata, typename Texporter>
+    template <typename Tvalue, typename Tmetadata, typename Texporter, Tvalue step=1>
     class atomic_monotonic_counter {
     public:
         using value_type = Tvalue;
         using metadata_type = Tmetadata;
         using exporter_type = Texporter;
     private:
-        atomic_bidirectional_counter<value_type,metadata_type,exporter_type> counter_;
+        atomic_bidirectional_counter<value_type,metadata_type,exporter_type,step> counter_;
     public:
         template <typename ...Args>
         explicit atomic_monotonic_counter(Args ...args) : counter_{std::forward<Args>(args)...} {}
 
         void add(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
-            counter_.add(1, mem_order);
+            counter_.add(step,mem_order);
         }
 
         value_type value(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
@@ -79,14 +79,14 @@ namespace simple_telemetry {
         template <typename ...Args>
         explicit telemetry(Args ...args) : impl_{std::make_shared<exporter_type>(std::forward<Args>(args)...)} {}
 
-        template<typename Tvalue>
-        atomic_bidirectional_counter<Tvalue,metadata_type,exporter_type> create_atomic_bidirectional_counter(Tmetadata metadata = {}, Tvalue value = 0) {
-            return atomic_bidirectional_counter<Tvalue,Tmetadata,Texporter>{impl_, std::move(metadata), value};
+        template<typename Tvalue,Tvalue step=1>
+        auto create_atomic_bidirectional_counter(Tmetadata metadata = {}, Tvalue value = 0) {
+            return atomic_bidirectional_counter<Tvalue,Tmetadata,Texporter,step>{impl_, std::move(metadata), value};
         }
 
-        template<typename Tvalue>
-        atomic_monotonic_counter<Tvalue,metadata_type,exporter_type> create_atomic_monotonic_counter(Tmetadata metadata = {}, Tvalue value = 0) {
-            return atomic_monotonic_counter<Tvalue,Tmetadata,Texporter>{impl_, std::move(metadata), value};
+        template<typename Tvalue,Tvalue step=1>
+        auto create_atomic_monotonic_counter(Tmetadata metadata = {}, Tvalue value = 0) {
+            return atomic_monotonic_counter<Tvalue,Tmetadata,Texporter,step>{impl_, std::move(metadata), value};
         }
 
     };
