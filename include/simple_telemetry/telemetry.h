@@ -26,7 +26,10 @@ namespace simple_telemetry {
         data_block<std::atomic<value_type>,metadata_type,exporter_type> data_;
     public:
         template <typename ...Args>
-        explicit atomic_bidirectional_counter(Args ...args) : data_{std::forward<Args>(args)...} {}
+        explicit atomic_bidirectional_counter(Args ...args) : data_{std::forward<Args>(args)...} {
+            value_type value = data_.value_.load();
+            data_.exporter_->on_data_changed(value, data_.metadata_);
+        }
 
         void add(value_type amount= 1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             value_type new_value = value_type{data_.value_.fetch_add(amount, mem_order)} + amount;
