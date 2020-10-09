@@ -1,12 +1,7 @@
 #ifndef SIMPLE_TELEMETRY_TELEMETRY_H
 #define SIMPLE_TELEMETRY_TELEMETRY_H
-#include <string>
 #include <memory>
 #include <atomic>
-#include <utility>
-#include <vector>
-#include <algorithm>
-#include <map>
 
 namespace simple_telemetry {
 
@@ -26,12 +21,12 @@ namespace simple_telemetry {
 
         void incr(Tvalue amount=1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             auto new_value = data_.value_.fetch_add(amount, mem_order) + amount;
-            (*data_.exporter_)(new_value, data_.metadata_);
+            data_.exporter_->on_data_changed(new_value, data_.metadata_);
         }
 
         void decr(Tvalue amount=1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
             auto new_value = data_.value_.fetch_sub(amount, mem_order) - amount;
-            data_.exporter_->exporter_(new_value, data_.metadata_);
+            data_.exporter_->on_data_changed(new_value, data_.metadata_);
         }
 
         Tvalue value(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
@@ -62,6 +57,14 @@ namespace simple_telemetry {
         }
 
         auto create_int64_atomic_counter(Tmetadata metadata = {}, int64_t value = 0) {
+            return create_atomic_counter(std::move(metadata),value);
+        }
+
+        auto create_uint32_atomic_counter(Tmetadata metadata = {}, uint32_t value = 0) {
+            return create_atomic_counter(std::move(metadata),value);
+        }
+
+        auto create_int32_atomic_counter(Tmetadata metadata = {}, int32_t value = 0) {
             return create_atomic_counter(std::move(metadata),value);
         }
 
