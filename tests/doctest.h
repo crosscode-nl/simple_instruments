@@ -886,10 +886,10 @@ public:
 
 #ifdef DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
     template <typename T>
-    explicit Approx(const T& value,
-                    typename detail::enable_if<std::is_constructible<double, T>::value>::type* =
+    explicit Approx(const T& value_,
+                    typename detail::enable_if<std::is_constructible<double, T>::value_>::type* =
                             static_cast<T*>(nullptr)) {
-        *this = Approx(static_cast<double>(value));
+        *this = Approx(static_cast<double>(value_));
     }
 #endif // DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
 
@@ -897,7 +897,7 @@ public:
 
 #ifdef DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
     template <typename T>
-    typename detail::enable_if<std::is_constructible<double, T>::value, Approx&>::type epsilon(
+    typename detail::enable_if<std::is_constructible<double, T>::value_, Approx&>::type epsilon(
             const T& newEpsilon) {
         m_epsilon = static_cast<double>(newEpsilon);
         return *this;
@@ -908,7 +908,7 @@ public:
 
 #ifdef DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
     template <typename T>
-    typename detail::enable_if<std::is_constructible<double, T>::value, Approx&>::type scale(
+    typename detail::enable_if<std::is_constructible<double, T>::value_, Approx&>::type scale(
             const T& newScale) {
         m_scale = static_cast<double>(newScale);
         return *this;
@@ -933,7 +933,7 @@ public:
 
 #ifdef DOCTEST_CONFIG_INCLUDE_TYPE_TRAITS
 #define DOCTEST_APPROX_PREFIX \
-    template <typename T> friend typename detail::enable_if<std::is_constructible<double, T>::value, bool>::type
+    template <typename T> friend typename detail::enable_if<std::is_constructible<double, T>::value_, bool>::type
 
     DOCTEST_APPROX_PREFIX operator==(const T& lhs, const Approx& rhs) { return operator==(double(lhs), rhs); }
     DOCTEST_APPROX_PREFIX operator==(const Approx& lhs, const T& rhs) { return operator==(rhs, lhs); }
@@ -971,9 +971,9 @@ namespace detail {
     template<class T, unsigned N>   struct decay_array<T[N]> { typedef T* type; };
     template<class T>               struct decay_array<T[]>  { typedef T* type; };
 
-    template<class T>   struct not_char_pointer              { enum { value = 1 }; };
-    template<>          struct not_char_pointer<char*>       { enum { value = 0 }; };
-    template<>          struct not_char_pointer<const char*> { enum { value = 0 }; };
+    template<class T>   struct not_char_pointer              { enum { value_ = 1 }; };
+    template<>          struct not_char_pointer<char*>       { enum { value_ = 0 }; };
+    template<>          struct not_char_pointer<const char*> { enum { value_ = 0 }; };
 
     template<class T> struct can_use_op : public not_char_pointer<typename decay_array<T>::type> {};
 #endif // DOCTEST_CONFIG_TREAT_CHAR_STAR_AS_STRING
@@ -1090,7 +1090,7 @@ namespace detail {
 #ifndef DOCTEST_CONFIG_TREAT_CHAR_STAR_AS_STRING
 #define DOCTEST_COMPARISON_RETURN_TYPE bool
 #else // DOCTEST_CONFIG_TREAT_CHAR_STAR_AS_STRING
-#define DOCTEST_COMPARISON_RETURN_TYPE typename enable_if<can_use_op<L>::value || can_use_op<R>::value, bool>::type
+#define DOCTEST_COMPARISON_RETURN_TYPE typename enable_if<can_use_op<L>::value_ || can_use_op<R>::value_, bool>::type
     inline bool eq(const char* lhs, const char* rhs) { return String(lhs) == String(rhs); }
     inline bool ne(const char* lhs, const char* rhs) { return String(lhs) != String(rhs); }
     inline bool lt(const char* lhs, const char* rhs) { return String(lhs) <  String(rhs); }
@@ -3980,7 +3980,7 @@ namespace {
         FatalConditionHandler() {
             isSet = true;
             // 32k seems enough for doctest to handle stack overflow,
-            // but the value was found experimentally, so there is no strong guarantee
+            // but the value_ was found experimentally, so there is no strong guarantee
             guaranteeSize = 32 * 1024;
             // Register an unhandled exception filter
             previousTop = SetUnhandledExceptionFilter(handleException);

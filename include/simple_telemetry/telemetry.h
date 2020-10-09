@@ -10,98 +10,60 @@
 
 namespace simple_telemetry {
 
-    using labels_type = std::map<std::string,std::string>;
-    using label_type = labels_type::value_type;
-
-    template <typename Type>
-    struct instrument {
-        [[nodiscard]] virtual Type value() const = 0;
-        [[nodiscard]] virtual const std::string& name() const = 0;
-        [[nodiscard]] virtual const labels_type& labels() const = 0;
-        virtual ~instrument() = default;
+    template <typename Tvalue, typename Tmetadata, typename Texporter>
+    struct data_block  {
+        std::shared_ptr<Texporter> exporter_;
+        Tmetadata metadata_;
+        Tvalue value_;
     };
 
-    template <typename Type>
-    class atomic_counter_impl : public instrument<Type> {
-        struct Data {
-            std::string name_{};
-            labels_type labels_{};
-            std::atomic<Type> value_{};
-        };
-        Data data_;
-        public:
+    template <typename Tvalue, typename Tmetadata, typename Texporter>
+    class atomic_counter {
+        data_block<std::atomic<Tvalue>,Tmetadata,Texporter> data_;
+    public:
         template <typename ...Args>
-        explicit atomic_counter_impl(Args... args) : data_{std::forward<Args>(args)...}{}
+        explicit atomic_counter(Args ...args) : data_{std::forward<Args>(args)...} {}
 
-        void increment() {
-            data_.value_.fetch_add(1,std::memory_order_relaxed);
+        void incr(Tvalue amount=1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+            auto new_value = data_.value_.fetch_add(amount, mem_order) + amount;
+            (*data_.exporter_)(new_value, data_.metadata_);
         }
 
-        [[nodiscard]] Type value() const override {
-            return data_.value_.load(std::memory_order_relaxed);
+        void decr(Tvalue amount=1, std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+            auto new_value = data_.value_.fetch_sub(amount, mem_order) - amount;
+            data_.exporter_->exporter_(new_value, data_.metadata_);
         }
 
-        [[nodiscard]] const std::string& name() const override {
-            return data_.name_;
+        Tvalue value(std::memory_order mem_order = std::memory_order::memory_order_seq_cst) {
+            return data_.value_.load(mem_order);
         }
 
-        [[nodiscard]] const labels_type& labels() const override {
-            return data_.labels_;
-        }
-    };
-
-    template <typename Type>
-    class atomic_counter : public instrument<Type> {
-        std::shared_ptr<atomic_counter_impl<Type>> impl_;
-        public:
-        explicit atomic_counter(std::shared_ptr<atomic_counter_impl<Type>> impl) : impl_(impl) {}
-
-        void increment() {
-            impl_->increment();
-        }
-
-        [[nodiscard]] Type value() const override {
-            return impl_->value();
-        }
-
-        [[nodiscard]] const std::string& name() const override {
-            return impl_->name();
-        }
-
-        [[nodiscard]] const labels_type& labels() const override {
-            return impl_->labels();
+        const Tmetadata &metadata() {
+            return data_.metadata_;
         }
     };
 
-    template <typename TVisitor>
+    template <typename Tmetadata, typename Texporter>
     class telemetry {
     private:
-        using uint64_t_atomic_counter_impl = atomic_counter_impl<uint64_t>;
-        using uint64_t_atomic_counters = std::vector<std::weak_ptr<uint64_t_atomic_counter_impl>>;
-        uint64_t_atomic_counters uint64_t_atomic_counters_;
-        TVisitor visitor_;
+        std::shared_ptr<Texporter> impl_;
+
+        template<typename Tvalue>
+        atomic_counter<Tvalue,Tmetadata,Texporter> create_atomic_counter(Tmetadata metadata = {}, Tvalue value = 0) {
+            return atomic_counter<Tvalue,Tmetadata,Texporter>{impl_, std::move(metadata), value};
+        }
+
     public:
-        explicit telemetry(TVisitor visitor) : visitor_{std::move(visitor)} {};
-
-        void collect() const {
-            auto handler = [this](const auto& weak_item) {
-                if (const auto item = weak_item.lock()) {
-                    visitor_(*item);
-                }
-            };
-            std::for_each(begin(uint64_t_atomic_counters_),end(uint64_t_atomic_counters_),handler);
-        }
-
         template <typename ...Args>
-        atomic_counter<uint64_t> create_atomic_counter(Args&&... args) {
-            auto s = std::make_shared<uint64_t_atomic_counter_impl>(std::forward<Args>(args)...);
-            uint64_t_atomic_counters_.emplace_back(s);
-            return atomic_counter<uint64_t>(s);
+        explicit telemetry(Args ...args) : impl_{std::make_shared<Texporter>(std::forward<Args>(args)...)} {}
+
+        auto create_uint64_atomic_counter(Tmetadata metadata = {}, uint64_t value = 0) {
+            return create_atomic_counter(std::move(metadata),value);
         }
 
-     //   atomic_counter<uint64_t> create_atomic_counter(std::string name, uint64_t init_value = 0) {
-//            return create_atomic_counter(std::move(name),{},init_value);
-//        }
+        auto create_int64_atomic_counter(Tmetadata metadata = {}, int64_t value = 0) {
+            return create_atomic_counter(std::move(metadata),value);
+        }
 
     };
 
