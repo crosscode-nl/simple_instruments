@@ -28,6 +28,8 @@ TEST_SUITE("telemetry") {
         simple_telemetry::telemetry<metadata, exporter> telemetry{exporter{&ss}};
         SUBCASE("Can create int16_t monotonic counter and is initialized with 0") {
             auto counter = telemetry.create_atomic_monotonic_counter<int16_t>({"test"});
+            static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_monotonic_counter should not be copy assignable");
+            static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_monotonic_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
             static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
@@ -54,6 +56,8 @@ TEST_SUITE("telemetry") {
 
         SUBCASE("Can create int16_t bidirectional counter and is initialized with 0") {
             auto counter = telemetry.create_atomic_bidirectional_counter<int16_t>({"test_overflow"});
+            static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy assignable");
+            static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
             static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
