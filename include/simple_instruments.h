@@ -102,21 +102,24 @@ namespace crosscode::simple_instruments {
         explicit instrument_factory(Args ...args) : impl_{std::make_shared<exporter_type>(std::forward<Args>(args)...)} {}
 
         template<typename Tvalue, Tvalue step=1>
-        auto create_atomic_bidirectional_counter(metadata_type metadata = {}, Tvalue value = 0) {
+        auto make_atomic_bidirectional_counter(metadata_type metadata = {}, Tvalue value = 0) {
             return atomic_bidirectional_counter<Tvalue,Texporter,step>{impl_, std::move(metadata), value};
         }
 
         template<typename Tvalue, Tvalue step=1>
-        auto create_atomic_monotonic_counter(metadata_type metadata = {}, Tvalue value = 0) {
+        auto make_atomic_monotonic_counter(metadata_type metadata = {}, Tvalue value = 0) {
             return atomic_monotonic_counter<Tvalue,Texporter,step>{impl_, std::move(metadata), value};
         }
 
         template<typename Tvalue>
-        auto create_atomic_value_recorder_counter(metadata_type metadata = {}, Tvalue value = 0) {
+        auto make_atomic_value_recorder_counter(metadata_type metadata = {}, Tvalue value = 0) {
             return atomic_value_recorder<Tvalue,Texporter>{impl_, std::move(metadata), value};
         }
-
     };
+
+    /// deduction guide
+    template<typename Texporter>
+    instrument_factory(Texporter e) -> instrument_factory<decltype(e)>;
 
 }
 
