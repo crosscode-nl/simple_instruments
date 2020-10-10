@@ -1,6 +1,0 @@
-#ifndef SIMPLE_TELEMETRY_SIMPLE_TELEMETRY_H
-#define SIMPLE_TELEMETRY_SIMPLE_TELEMETRY_H
-#include "simple_telemetry/telemetry.h"
-
-
-#endif //SIMPLE_TELEMETRY_SIMPLE_TELEMETRY_H

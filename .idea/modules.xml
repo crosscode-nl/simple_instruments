@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/simple_instruments.iml" filepath="$PROJECT_DIR$/.idea/simple_instruments.iml" />
       <module fileurl="file://$PROJECT_DIR$/../simple_telemetry/.idea/simpletelemetry.iml" filepath="$PROJECT_DIR$/../simple_telemetry/.idea/simpletelemetry.iml" />
     </modules>
   </component>

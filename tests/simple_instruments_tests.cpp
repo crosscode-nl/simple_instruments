@@ -1,14 +1,17 @@
-#include "simple_telemetry.h"
+#include "simple_instruments.h"
 #include "doctest.h"
 #include <sstream>
 
 using namespace std::literals;
 
+namespace csi = crosscode::simple_instruments;
+
 struct metadata {
     std::string name;
+    bool emit_initial{true};
 };
 
-std::string name(const metadata& md) {
+std::string unique_identifier(const metadata& md) {
     return md.name;
 }
 
@@ -16,18 +19,26 @@ class exporter {
     std::ostream *os_;
 public:
     explicit exporter(std::ostream *os) : os_(os) {}
+
     template <typename Tvalue>
-    void on_data_changed(const Tvalue &value, const metadata& md) const {
-        (*os_) << name(md) << " " << value << "\n";
+    void emit_init(const Tvalue &value, const metadata& md) const {
+        if (md.emit_initial) {
+            (*os_) << unique_identifier(md) << " " << value << "\n";
+        }
+    }
+
+    template <typename Tvalue>
+    void emit(const Tvalue &value, const metadata& md) const {
+        (*os_) << unique_identifier(md) << " " << value << "\n";
     }
 };
 
-TEST_SUITE("telemetry") {
-    TEST_CASE("Can create telemetry") {
+TEST_SUITE("instrument_factory") {
+    TEST_CASE("Can create instrument_factory") {
         std::stringstream ss;
-        simple_telemetry::telemetry<metadata, exporter> telemetry{exporter{&ss}};
+        csi::instrument_factory<metadata, exporter> factory{exporter{&ss}};
         SUBCASE("Can create int16_t value recorder and is initialized with 0") {
-            auto counter = telemetry.create_atomic_value_recorder_counter<int16_t>({"test"});
+            auto counter = factory.create_atomic_value_recorder_counter<int16_t>({"test", false});
             REQUIRE(0==counter.value());
             SUBCASE("Set value to 5736, value is set to 5736") {
                 counter.set(5736);
@@ -38,7 +49,7 @@ TEST_SUITE("telemetry") {
             }
         }
         SUBCASE("Can create int16_t monotonic counter and is initialized with 0") {
-            auto counter = telemetry.create_atomic_monotonic_counter<int16_t>({"test"});
+            auto counter = factory.create_atomic_monotonic_counter<int16_t>({"test"});
             static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_monotonic_counter should not be copy assignable");
             static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_monotonic_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
@@ -54,7 +65,7 @@ TEST_SUITE("telemetry") {
             }
         }
         SUBCASE("Can create int16_t monotonic counter with init value 10, step 3 and is initialized with 10") {
-            auto counter = telemetry.create_atomic_monotonic_counter<int16_t,3>({"test"},10);
+            auto counter = factory.create_atomic_monotonic_counter<int16_t,3>({"test"}, 10);
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
             static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
@@ -66,7 +77,7 @@ TEST_SUITE("telemetry") {
         }
 
         SUBCASE("Can create int16_t bidirectional counter and is initialized with 0") {
-            auto counter = telemetry.create_atomic_bidirectional_counter<int16_t>({"test_overflow"});
+            auto counter = factory.create_atomic_bidirectional_counter<int16_t>({"test_overflow"});
             static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy assignable");
             static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
@@ -86,7 +97,7 @@ TEST_SUITE("telemetry") {
         }
         SUBCASE("Can create uint64 bidirectional counter and is initialized with 0")
         {
-            auto counter = telemetry.create_atomic_bidirectional_counter<uint64_t>({"test"});
+            auto counter = factory.create_atomic_bidirectional_counter<uint64_t>({"test"});
             static_assert(std::is_same_v<decltype(counter)::value_type,std::uint64_t>,"value_type should be the same  type as uint64_t");
             static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
@@ -108,7 +119,7 @@ TEST_SUITE("telemetry") {
         }
         SUBCASE("Can create uint64 bidirectional counter with default value 10 and is initialized with 10")
         {
-            auto counter = telemetry.create_atomic_bidirectional_counter<uint64_t>({"test"},10);
+            auto counter = factory.create_atomic_bidirectional_counter<uint64_t>({"test"}, 10);
             REQUIRE(counter.value()==10);
             SUBCASE("Increment default increments counter with 1 to 11") {
                 counter.add();

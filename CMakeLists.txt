@@ -1,25 +1,20 @@
 cmake_minimum_required(VERSION 3.8.2)
-project(simple_telemetry
+project(simple_instruments
         VERSION 0.0.0
         LANGUAGES C CXX)
 
 include(cmake/buildsetup.cmake)
 
-option(BUILD_SIMPLE_TELEMETRY_TESTS "Set this to ON to build unit tests" ON)
+option(BUILD_SIMPLE_INSTRUMENTS_TESTS "Set this to ON to build unit tests" ON)
 
-set(SIMPLE_TELEMETRY_HEADERS
-    include/simple_telemetry.h
-        include/simple_telemetry/telemetry.h)
+add_library(simple_instruments include/simple_instruments.h)
+set_target_properties(simple_instruments PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(simple_instruments INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_include_directories(simple_instruments PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-set(SIMPLE_TELEMETRY_SRC src/simple_telemetry/telemetry.cpp)
+set_target_properties(simple_instruments PROPERTIES PUBLIC_HEADER "include/simple_instruments.h")
 
-add_library(simple_telemetry ${SIMPLE_TELEMETRY_HEADERS} ${SIMPLE_TELEMETRY_SRC})
-target_include_directories(simple_telemetry INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-target_include_directories(simple_telemetry PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-
-set_target_properties(simple_telemetry PROPERTIES PUBLIC_HEADER "include/simple_telemetry.h")
-
-if (BUILD_SIMPLE_TELEMETRY_TESTS)
+if (BUILD_SIMPLE_INSTRUMENTS_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
