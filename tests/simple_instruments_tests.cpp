@@ -33,7 +33,7 @@ public:
     }
 };
 
-TEST_SUITE("instrument_factory") {
+TEST_SUITE("simple_instruments") {
     TEST_CASE("Can create instrument_factory") {
         std::stringstream ss;
         csi::instrument_factory<metadata, exporter> factory{exporter{&ss}};
