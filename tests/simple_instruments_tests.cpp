@@ -16,19 +16,22 @@ std::string unique_identifier(const metadata& md) {
 }
 
 class exporter {
+public:
+    using metadata_type = metadata;
+private:
     std::ostream *os_;
 public:
     explicit exporter(std::ostream *os) : os_(os) {}
 
     template <typename Tvalue>
-    void emit_init(const Tvalue &value, const metadata& md) const {
+    void emit_init(const Tvalue &value, const metadata_type& md) const {
         if (md.emit_initial) {
             (*os_) << unique_identifier(md) << " " << value << "\n";
         }
     }
 
     template <typename Tvalue>
-    void emit(const Tvalue &value, const metadata& md) const {
+    void emit(const Tvalue &value, const metadata_type& md) const {
         (*os_) << unique_identifier(md) << " " << value << "\n";
     }
 };
@@ -36,7 +39,7 @@ public:
 TEST_SUITE("simple_instruments") {
     TEST_CASE("Can create instrument_factory") {
         std::stringstream ss;
-        csi::instrument_factory<metadata, exporter> factory{exporter{&ss}};
+        csi::instrument_factory<exporter> factory{exporter{&ss}};
         SUBCASE("Can create int16_t value recorder and is initialized with 0") {
             auto counter = factory.create_atomic_value_recorder_counter<int16_t>({"test", false});
             REQUIRE(0==counter.value());
@@ -53,7 +56,6 @@ TEST_SUITE("simple_instruments") {
             static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_monotonic_counter should not be copy assignable");
             static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_monotonic_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
-            static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
             REQUIRE(0==counter.value());
             SUBCASE("Add increments it to 1") {
@@ -67,7 +69,6 @@ TEST_SUITE("simple_instruments") {
         SUBCASE("Can create int16_t monotonic counter with init value 10, step 3 and is initialized with 10") {
             auto counter = factory.create_atomic_monotonic_counter<int16_t,3>({"test"}, 10);
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
-            static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
             REQUIRE(10==counter.value());
             SUBCASE("Add increments it to 13") {
@@ -81,7 +82,6 @@ TEST_SUITE("simple_instruments") {
             static_assert(!std::is_copy_assignable_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy assignable");
             static_assert(!std::is_copy_constructible_v<decltype(counter)>,"atomic_bidirectional_counter should not be copy constructable");
             static_assert(std::is_same_v<decltype(counter)::value_type,std::int16_t>,"value_type should be the same  type as int64_t");
-            static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
             SUBCASE("Can decrement with std::numeric_limits<int16_t>::min() and value become std::numeric_limits<int16_t>::min()") {
                 counter.add(std::numeric_limits<int16_t>::min());
@@ -99,7 +99,6 @@ TEST_SUITE("simple_instruments") {
         {
             auto counter = factory.create_atomic_bidirectional_counter<uint64_t>({"test"});
             static_assert(std::is_same_v<decltype(counter)::value_type,std::uint64_t>,"value_type should be the same  type as uint64_t");
-            static_assert(std::is_same_v<decltype(counter)::metadata_type,metadata>,"metadata_type should be the same type as metadata");
             static_assert(std::is_same_v<decltype(counter)::exporter_type,exporter>,"exporter_type should be the same type as exporter");
             REQUIRE(counter.value()==0);
             SUBCASE("Increment default increments counter with 1") {
