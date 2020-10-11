@@ -14,6 +14,34 @@ target_include_directories(simple_instruments PRIVATE $<BUILD_INTERFACE:${CMAKE_
 
 set_target_properties(simple_instruments PROPERTIES PUBLIC_HEADER "include/simple_instruments.h")
 
+install(TARGETS simple_instruments
+        EXPORT SimpleInstrumentsTargets
+        RUNTIME DESTINATION bin
+        ARCHIVE DESTINATION lib
+        PUBLIC_HEADER DESTINATION include)
+
+include(CMakePackageConfigHelpers)
+
+install(EXPORT SimpleInstrumentsTargets
+        NAMESPACE SimpelInstruments::
+        DESTINATION lib/cmake/simple_instruments)
+
+write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/simple_instruments/SimpleInstrumentsConfigVersion.cmake"
+        VERSION ${Upstream_VERSION}
+        COMPATIBILITY AnyNewerVersion
+)
+
+install(
+        FILES
+        cmake/SimpleInstrumentsConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/simple_instruments/SimpleInstrumentsConfigVersion.cmake"
+        DESTINATION
+        lib/cmake/simple_instruments
+        COMPONENT
+        Devel
+)
+
 if (BUILD_SIMPLE_INSTRUMENTS_TESTS)
     enable_testing()
     add_subdirectory(tests)
