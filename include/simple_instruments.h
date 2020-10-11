@@ -115,6 +115,10 @@ namespace crosscode::simple_instruments {
         auto make_atomic_value_recorder_counter(metadata_type metadata = {}, Tvalue value = 0) {
             return atomic_value_recorder<Tvalue,Texporter>{impl_, std::move(metadata), value};
         }
+
+        exporter_type& exporter() {
+            return *(impl_);
+        }
     };
 
     /// deduction guide

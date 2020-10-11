@@ -28,12 +28,43 @@ or as a table.
 
 You can also have a push model, where you send all value changes to a time series database. 
     
-This means there are 3 situations, where only in one situation the push tabular variant needs histograms or summaries.
+This means there are three situations, where only in one situation the push tabular variant needs histograms 
+or summaries.
 
-This can be solved somewhere else, for example inside the exporter or maybe better, outside the application.   
+This can be solved somewhere else, for example inside the exporter or maybe better, outside the application.
+
+I see these models:
+
+### Push 
+
+```                              
++--------------------+      Pushed     +-------------+
+| Application        | Instrumentation |             |
+|                    |       data      | Time Series |
+|====================+---------------->+             |
+| simple_instruments |                 |  Database   |
+| push_exporter      |                 |             |
++--------------------+                 +-------------+
+```
+
+### Pull
+
+```
++--------------------+     Pushed      +-------------+     Pulled      +-------------+
+| Application        | Instrumentation |             | Instrumentation |             |
+|                    |      data       | Time Series |      data       | Time Series |
+|====================+---------------->+             +---------------->+             |
+| simple_instruments |                 | Pull Buffer |                 |  Database   |
+| push_exporter      |                 |             |                 |             |
++--------------------+                 +-------------+                 +-------------+
+```
+
 
 This makes that I think instrumentation can be simplified to just a value recording instrument submitting values to 
-an exporter. 
+a push exporter compatible with a popular time series database. 
+
+The time series pull buffer should accept the same protocol as the popular time series database. The pull buffer
+should be configurable to setup  
 
 ## Design
 
@@ -43,9 +74,46 @@ This library works with 4 components:
 2. Instruments factory
 3. Exporter
 
+### Instruments factory
+
+The instrument factory creates instruments and owns a shared pointer to the exporter. 
+
+You can access the exporter by calling exporter() on the factory.
+
+The factory can create the following instrument types: 
+
+| Instrument                   | Description         | Example            |
+|------------------------------|---------------------|--------------------|
+| atomic_bidirectional_counter | Counts up and down. | Active requests    |
+| atomic_monotonic_counter     | Counts up.          | Completed requests |
+| atomic_value_recorder        | Records any value.  | Received bytes     |
+
 ### Instruments
 
-### Instruments factory
+The following examples use the exporter described below. 
+
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
+    counter.add();
+```
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_monotonic_counter<uint64_t>({"test"});
+    counter.add();
+```
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
+    counter.add();
+```
+
 
 ### Exporter
 
@@ -53,7 +121,7 @@ The exporter will receive all value changes and metadata and handle it according
 
 The exporter also determines the type of metadata that is provided in each instrument.
 
-The exporter must adhere to a view rules: 
+To implement a minimal exporter you have to do the following things:  
 
 1. The exporter determines the type of the metadata that is used like so: 
 

@@ -40,6 +40,12 @@ TEST_SUITE("simple_instruments") {
     TEST_CASE("Can create instrument_factory") {
         std::stringstream ss;
         csi::instrument_factory factory(exporter{&ss});
+        SUBCASE("Can manually access exporter") {
+            factory.exporter().emit(10,{"test"});
+            SUBCASE("Serialized to test 10\\n") {
+                REQUIRE(ss.str()=="test 10\n");
+            }
+        }
         SUBCASE("Can create int16_t value recorder and is initialized with 0") {
             auto counter = factory.make_atomic_value_recorder_counter<int16_t>({"test", false});
             REQUIRE(0==counter.value());
