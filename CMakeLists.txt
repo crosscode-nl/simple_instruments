@@ -23,7 +23,7 @@ install(TARGETS simple_instruments
 include(CMakePackageConfigHelpers)
 
 install(EXPORT SimpleInstrumentsTargets
-        NAMESPACE SimpelInstruments::
+        NAMESPACE SimpleInstruments::
         DESTINATION lib/cmake/SimpleInstruments)
 
 write_basic_package_version_file(
