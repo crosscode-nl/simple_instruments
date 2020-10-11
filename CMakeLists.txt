@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8.2)
 project(simple_instruments
-        VERSION 0.0.0
+        VERSION 0.1.0
         LANGUAGES C CXX)
 
 include(cmake/buildsetup.cmake)
@@ -24,10 +24,10 @@ include(CMakePackageConfigHelpers)
 
 install(EXPORT SimpleInstrumentsTargets
         NAMESPACE SimpelInstruments::
-        DESTINATION lib/cmake/simple_instruments)
+        DESTINATION lib/cmake/SimpleInstruments)
 
 write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/simple_instruments/SimpleInstrumentsConfigVersion.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/SimpleInstruments/SimpleInstrumentsConfigVersion.cmake"
         VERSION ${Upstream_VERSION}
         COMPATIBILITY AnyNewerVersion
 )
@@ -35,9 +35,9 @@ write_basic_package_version_file(
 install(
         FILES
         cmake/SimpleInstrumentsConfig.cmake
-        "${CMAKE_CURRENT_BINARY_DIR}/simple_instruments/SimpleInstrumentsConfigVersion.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/SimpleInstruments/SimpleInstrumentsConfigVersion.cmake"
         DESTINATION
-        lib/cmake/simple_instruments
+        lib/cmake/SimpleInstruments
         COMPONENT
         Devel
 )
