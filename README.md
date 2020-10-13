@@ -25,7 +25,7 @@ An application I'm planning to make is:
  
 * InfluxDB Line Protocol Pull Buffer. 
 
-The InfluxDB Line Protocol Pull Buffer will act as a configurable exporter for Prometheus.
+The InfluxDB Line Protocol Pull Buffer will act as a configurable exporter for at least Prometheus.
 
 ## Why?
 
@@ -40,24 +40,20 @@ configured. In Prometheus client libraries these decisions have to be made in co
 For example: 
 
 Let's say we are measuring network latency. We only need to record the latency value from our application. However, 
-when using a Prometheus client library it will only be able to send the latest value when it is PULLED from the HTTP 
-endpoint. This means we are missing information. That's why we now have to use a histogram. We create buckets for 
-expected values. This allows Prometheus to aggregate the buckets and calculate quantiles.
+when using a Prometheus client library it will only be able to send the latest value when it is pulled from the HTTP 
+endpoint. This means we are missing information, and that's why we now have to use a histogram or summary. 
 
-So, because Prometheus pulls only the latest values every once in a while, you need more information in the exported
-data to allow Prometheus to make up for the missing measured events. That's why you have to use and configure histograms
-and summaries make up for the missing data and be able to do calculations on the data. This only works when the correct 
-histograms and summaries are configured correctly, and will always be off a bit.       
+In case of the histogram we create buckets for expected values. This allows Prometheus to aggregate the buckets 
+and calculate quantiles. This only works when the correct histograms and summaries are configured correctly, 
+and might be off a bit.
 
-This has some disadvantages. Because even when a histogram is configured correctly when time progresses the chosen 
-configuration might become wrong, because of improved network technology or changed SLA's. Now you have to change your 
-code and recompile your application. 
+This has some disadvantages, because even when a histogram is configured correctly, when time progresses the chosen 
+configuration might become wrong. This could be because of improved network technology or changed SLA's, for example. 
+Now you have to change your code, test, and release your application.
 
 This is why I think that the notion of histograms and summaries have to removed completely from the measured 
-application. An application developer should just measure and report latency events in this case. 
-
-If you need a histogram or summary then you could use a push TSDB and calculate it from there. This gives the most
-accurate result. If you can do this, then do this.
+application. An application developer should just measure and report latency events in this case. If you need a 
+histogram or summary then you could use a push TSDB and calculate it from there. This gives the most accurate result. 
 
 If you want or need to use a pull TSDB like prometheus, something as a pull buffer should be used. This might be
 necessary because of the scale of the monitored systems and amount of collected data. It must be possible 
@@ -95,50 +91,11 @@ This would result in an architecture that looks like this:
 
 ## Design
 
-This library works with 4 components: 
+This library works with 3 components: 
 
-1. Instruments
+1. Exporter
 2. Instruments factory
-3. Exporter
-
-### Instruments factory
-
-The instrument factory creates instruments and owns a shared pointer to the exporter. 
-
-You can access the exporter by calling exporter() on the factory.
-
-The factory can create the following instrument types: 
-
-| Instrument                   | Description         | Example            |
-|------------------------------|---------------------|--------------------|
-| atomic_bidirectional_counter | Counts up and down. | Active requests    |
-| atomic_monotonic_counter     | Counts up.          | Completed requests |
-| atomic_value_recorder        | Records any value.  | Received bytes     |
-
-### Instruments
-
-The following examples use the exporter described below.  
-
-```cpp
-    std::stringstream ss;
-    csi::instrument_factory factory(exporter{&ss});
-    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
-    counter.add();
-```
-
-```cpp
-    std::stringstream ss;
-    csi::instrument_factory factory(exporter{&ss});
-    auto counter = factory.make_atomic_monotonic_counter<uint64_t>({"test"});
-    counter.add();
-```
-
-```cpp
-    std::stringstream ss;
-    csi::instrument_factory factory(exporter{&ss});
-    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
-    counter.add();
-```
+3. Instruments
 
 ### Exporter
 
@@ -195,6 +152,79 @@ public:
         (*os_) << md.name << " " << value << "\n";
     }
 };
+```
+
+### Instruments factory
+
+The instrument factory creates instruments and owns a shared pointer to the exporter. 
+
+You can access the exporter by calling exporter() on the factory.
+
+The factory can create the following instrument types: 
+
+| Instrument                   | Description         | Example            |
+|------------------------------|---------------------|--------------------|
+| atomic_bidirectional_counter | Counts up and down. | Active requests    |
+| atomic_monotonic_counter     | Counts up.          | Completed requests |
+| atomic_value_recorder        | Records any value.  | Received bytes     |
+
+This creates the factory: 
+
+```cpp
+namespace csi = crosscode::simple_instruments; 
+
+csi::instrument_factory factory(exporter{&ss});
+```
+
+As it will hold the instance to the exporter, you can access a reference to the the exporter if needed like so: 
+
+```cpp
+csi::instrument_factory factory(exporter{&ss});
+factory.exporter().do_something(); 
+```
+
+### Instruments
+
+The following examples use the exporter described above.  
+
+#### atomic_bidirectional_counter
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
+    counter.add(); // Now it will hold 1
+    counter.sub(); // Now it will hold 0
+```
+
+You can also change the initial value: 
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"},10);
+    counter.add(); // Now it will hold 11
+```
+
+
+
+#### atomic_monotonic_counter
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});
+    auto counter = factory.make_atomic_monotonic_counter<uint64_t>({"test"});
+    counter.add(); //Now it will hold 1
+```
+
+#### atomic_value_recorder
+
+```cpp
+    std::stringstream ss;
+    csi::instrument_factory factory(exporter{&ss});    
+    auto recorder = factory.make_atomic_value_recorder_counter<int16_t>({"test", false});    
+    recorder.set(5736); // Now it will hold 5736
+    recorder.set(1); // Now it will hold 1
 ```
 
 ## Installation
