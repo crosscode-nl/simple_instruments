@@ -2,8 +2,8 @@
 
 [![GitHub version](https://badge.fury.io/gh/crosscode-nl%2Fsimple_instruments.svg)](https://badge.fury.io/gh/crosscode-nl%2Fsimple_instruments)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/crosscode-nl/simple_instruments.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/crosscode-nl/simple_instruments/context:cpp)
-
-
+[![Build Status](https://travis-ci.com/crosscode-nl/simple_instruments.svg?branch=master)](https://travis-ci.com/crosscode-nl/simple_instruments)
+[![Build status](https://ci.appveyor.com/api/projects/status/t20xy5b0vu01sh6d?svg=true)](https://ci.appveyor.com/project/crosscode-nl/simple-instruments)
 [![Standard](https://img.shields.io/badge/c%2B%2B-17/20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
