@@ -1,6 +1,7 @@
 #include "simple_instruments.h"
 #include "doctest.h"
 #include <sstream>
+#include <numeric>
 
 using namespace std::literals;
 
