@@ -1,5 +1,12 @@
 # Simple Instruments
 
+[![GitHub version](https://badge.fury.io/gh/crosscode-nl%2Fsimple_instruments.svg)](https://badge.fury.io/gh/crosscode-nl%2Fsimple_instruments)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/crosscode-nl/simple_instruments.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/crosscode-nl/simple_instruments/context:cpp)
+
+
+[![Standard](https://img.shields.io/badge/c%2B%2B-17/20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ## Introduction
 
 Simple instruments is a very simple approach for adding instrumentation to your code. This C++17 header only library
@@ -7,33 +14,60 @@ helps adding instruments in your code.
 
 The instruments are created from a factory which is created with an external supplied exporter.
 
+This library is meant for everybody who wants to develop such an exporter.
+
+Exporters I'm planning to make are:
+
+* InfluxDB Line Protocol files for offline recording of metrics. 
+* InfluxDB Line Protocol HTTP protocol.
+
+An application I'm planning to make is:
+ 
+* InfluxDB Line Protocol Pull Buffer. 
+
+The InfluxDB Line Protocol Pull Buffer will act as a configurable exporter for Prometheus.
+
 ## Why?
 
 I looked at a few library's and investigated the code commonly used for instrumenting applications and found that they
-were too coupled with backing time series database and push/pull model that was used. I also found that too many 
-specialized instruments where defined, up until the point that metrics where already created in instruments.
+were too coupled with the backing time series database (TSDB) . API's  for a push and pull model are different. 
+I also found that too many specialized instruments where defined, up until the point that metrics where already created 
+in instruments. I'm looking at you [Prometheus](https://prometheus.io/docs/instrumenting/writing_clientlibs/).
 
-Some libraries allow you to use a histogram or summary instrument. However, both need to be configured and have to deal 
-with limits. However, I believe these are things that should be configured and calculated somewhere else and not in the 
-instrumented code. That code should not need to be changed if for example new network technologies make the current 
-configuration of histograms useless. 
+Prometheus needs you to use a histogram or summary instrument because of the pull model. However, both need to be 
+configured. In Prometheus client libraries these decisions have to be made in code. This is a bad idea. 
 
-Libraries that allow to create instruments like histograms or summaries are basically applying metrics to early.  
+For example: 
 
-You can have a pull model where a time series database pulls data from you instruments. It can pull the data as a stream
-or as a table.  
+Let's say we are measuring network latency. We only need to record the latency value from our application. However, 
+when using a Prometheus client library it will only be able to send the latest value when it is PULLED from the HTTP 
+endpoint. This means we are missing information. That's why we now have to use a histogram. We create buckets for 
+expected values. This allows Prometheus to aggregate the buckets and calculate quantiles.
 
-1. All instrument value changes are send, basically a stream. 
-2. A snapshot of the instrument values is send, basically tabular data.
+So, because Prometheus pulls only the latest values every once in a while, you need more information in the exported
+data to allow Prometheus to make up for the missing measured events. That's why you have to use and configure histograms
+and summaries make up for the missing data and be able to do calculations on the data. This only works when the correct 
+histograms and summaries are configured correctly, and will always be off a bit.       
 
-You can also have a push model, where you send all value changes to a time series database. 
-    
-This means there are three situations, where only in one situation the push tabular variant needs histograms 
-or summaries.
+This has some disadvantages. Because even when a histogram is configured correctly when time progresses the chosen 
+configuration might become wrong, because of improved network technology or changed SLA's. Now you have to change your 
+code and recompile your application. 
 
-This can be solved somewhere else, for example inside the exporter or maybe better, outside the application.
+This is why I think that the notion of histograms and summaries have to removed completely from the measured 
+application. An application developer should just measure and report latency events in this case. 
 
-I see these models:
+If you need a histogram or summary then you could use a push TSDB and calculate it from there. This gives the most
+accurate result. If you can do this, then do this.
+
+If you want or need to use a pull TSDB like prometheus, something as a pull buffer should be used. This might be
+necessary because of the scale of the monitored systems and amount of collected data. It must be possible 
+to configure the pull buffer to expose certain measurements as histograms or summaries. It must be configuration 
+only.        
+
+This library therefore allows for decoupling. Histograms and Summaries can be created for observed values and should be 
+externally configured. (Not in code.)
+
+This would result in an architecture that looks like this: 
 
 ### Push 
 
@@ -59,13 +93,6 @@ I see these models:
 +--------------------+                 +-------------+                 +-------------+
 ```
 
-
-This makes that I think instrumentation can be simplified to just a value recording instrument submitting values to 
-a push exporter compatible with a popular time series database. 
-
-The time series pull buffer should accept the same protocol as the popular time series database. The pull buffer
-should be configurable to setup  
-
 ## Design
 
 This library works with 4 components: 
@@ -90,8 +117,7 @@ The factory can create the following instrument types:
 
 ### Instruments
 
-The following examples use the exporter described below. 
-
+The following examples use the exporter described below.  
 
 ```cpp
     std::stringstream ss;
@@ -113,7 +139,6 @@ The following examples use the exporter described below.
     auto counter = factory.make_atomic_bidirectional_counter<uint64_t>({"test"});
     counter.add();
 ```
-
 
 ### Exporter
 
