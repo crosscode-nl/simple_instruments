@@ -8,28 +8,26 @@ include(cmake/buildsetup.cmake)
 option(BUILD_SIMPLE_INSTRUMENTS_TESTS "Set this to ON to build unit tests" ON)
 
 add_library(simple_instruments INTERFACE)
+target_compile_features(simple_instruments INTERFACE cxx_std_17)
 
 target_include_directories(simple_instruments INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-
-set_target_properties(simple_instruments PROPERTIES PUBLIC_HEADER "include/simple_instruments.h")
 
 install(TARGETS simple_instruments
         EXPORT SimpleInstrumentsTargets
         RUNTIME DESTINATION bin
-        ARCHIVE DESTINATION lib
-        PUBLIC_HEADER DESTINATION include)
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
 
 include(CMakePackageConfigHelpers)
-
-install(EXPORT SimpleInstrumentsTargets
-        NAMESPACE SimpleInstruments::
-        DESTINATION lib/cmake/SimpleInstruments)
-
 write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/SimpleInstruments/SimpleInstrumentsConfigVersion.cmake"
         VERSION ${Upstream_VERSION}
         COMPATIBILITY AnyNewerVersion
 )
+
+install(EXPORT SimpleInstrumentsTargets
+        NAMESPACE SimpleInstruments::
+        DESTINATION lib/cmake/SimpleInstruments)
 
 install(
         FILES
@@ -40,6 +38,8 @@ install(
         COMPONENT
         Devel
 )
+
+install(FILES ${PROJECT_SOURCE_DIR}/include/simple_instruments.h DESTINATION include)
 
 if (BUILD_SIMPLE_INSTRUMENTS_TESTS)
     enable_testing()
