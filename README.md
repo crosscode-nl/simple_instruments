@@ -275,7 +275,7 @@ The first step is to install the library on the system.
 
 #### Installing onto the system
 
-This method requires InfluxDBLPTool to be build and installed on the system.
+This method requires simple_instruments to be build and installed on the system.
 
 ```bash
 git clone https://github.com/crosscode-nl/simple_instruments
