@@ -1,0 +1,24 @@
+version: 1.0.{build}
+image:
+  - Visual Studio 2019
+  - Visual Studio 2017
+build_script:
+  - cmd: |
+      mkdir build
+      cd build
+      cmake .. -DCMAKE_BUILD_TYPE=Release
+      msbuild simple_instruments.sln /p:Configuration=Release
+test_script:
+  - cmd: msbuild RUN_TESTS.vcxproj /p:Configuration=Release
+notifications:
+  - provider: Email
+    to:
+      - patrick@crosscode.nl
+    subject: AppVeyor build simple_instruments
+    on_build_success: true
+    on_build_failure: true
+    on_build_status_changed: true
+branches:
+  only:
+    - master
+    - develop
